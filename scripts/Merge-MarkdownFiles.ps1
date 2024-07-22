@@ -93,11 +93,9 @@ function Copy-ImagesToDirectory {
     Get-ChildItem -Path $sourceDirectory -Include $imageExtensions -File -Recurse | Copy-Item -Destination $destinationDirectory
 }
 
-
 $directoryPath  = "./pages/"                                            # Path To Grav Documentation
 $imageDir       = "./.github/workflows/bin/images/"                     # Path to where images should go
 $outputFile     = "./.github/workflows/bin/combined_documentation.md"   # Path to where you want your damn markdown ;)
-
 
 # Move all image files into ./images so they can be found
 Copy-ImagesToDirectory -sourceDirectory $directoryPath -destinationDirectory $imageDir
