@@ -14,7 +14,6 @@ jobs:
           config_path: .spellcheck.yml
           task_name: Markdown
 
-
   build-pdf:
     runs-on: ubuntu-latest
     steps:
@@ -31,19 +30,68 @@ jobs:
       run: |
         ./scripts/Merge-MarkdownFiles.ps1
 
-    - name: Build PDF
-      uses: baileyjm02/markdown-to-pdf@v1
+    - name: Copy images folder to root directory
+      run: cp -r ./.github/workflows/bin/images ./images
+    - name: Get Date
+      run: |
+        CURRENT_DATE=$(date +'%Y-%m-%d')
+
+    - name: Build PDF-V2
+      uses: docker://pandoc/extra
       with:
-          input_path: ./.github/workflows/bin/
-          # Specify images dir
-          images_dir: ./.github/workflows/bin/images/
-          image_import: images
-          # Build HTML version
-          build_html: true
-          # Build Table of Contents
-          table_of_contents: true
-          # Path to output (this should be the same as the Upload Artifiact path)
-          output_dir: ./.github/workflows/bin/
+          args: >
+            -s -o ./.github/workflows/bin/QLCplusDocumentation.pdf 
+            ./.github/workflows/bin/combined_documentation.md 
+            --metadata title="QLC+ Documentation" 
+            --metadata subtitle="Comprehensive Guide" 
+            --metadata author="QLC+ Team" 
+            --metadata date=${CURRENT_DATE} 
+            --listings 
+            --pdf-engine=lualatex
+            -V papersize=a4 
+            -V geometry:margin=1in 
+            -V classoption=oneside 
+            -V toc=true
+            -V toc-title="Table of Contents"
+            -V mainfont="Source Sans Pro"
+            -V sansfont="Source Sans Pro"
+            -f markdown-raw_tex 
+
+    - name: Create Title Page Markdown
+      run: |
+              echo " " > ./.github/workflows/bin/titlepage.md
+              echo " " >> ./.github/workflows/bin/titlepage.md
+              echo " " >> ./.github/workflows/bin/titlepage.md
+              echo "![](images/qlcplus.svg)" >> ./.github/workflows/bin/titlepage.md
+              
+    - name: Convert Title Page to PDF
+      uses: docker://pandoc/extra
+      with:
+          args: >
+                  -s -o ./.github/workflows/bin/titlepage.pdf 
+                  ./.github/workflows/bin/titlepage.md 
+                  --pdf-engine=lualatex
+                  --metadata title="QLC+ Documentation" 
+                  --metadata subtitle="Comprehensive Guide" 
+                  --metadata author="QLC+ Team" 
+                  --metadata date=${CURRENT_DATE} 
+                  -V papersize=a4 
+                  -V titlepage=true
+                  -V titlepage-color="364e5e"
+                  -V titlepage-text-color="000000"
+                  -V titlepage-rule-color="000000"
+                  -V titlepage-rule-height=2
+                  -V geometry:margin=1in 
+                  -V mainfont="Source Sans Pro"
+                  -V sansfont="Source Sans Pro"  
+
+    - name: Combine Title Page and Documentation PDF
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ghostscript
+        gs -dBATCH -dNOPAUSE -q -sDEVICE=pdfwrite -sOutputFile=./.github/workflows/bin/QLCplusDocumentation_with_titlepage.pdf ./.github/workflows/bin/titlepage.pdf ./.github/workflows/bin/QLCplusDocumentation.pdf
+     
+
     - name: Upload-Artifact
       uses: actions/upload-artifact@v4
       with:
